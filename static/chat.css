@@ -319,7 +319,32 @@ input:focus {
   text-align: center;
   color: var(--muted);
   max-width: 28rem;
-  line-height: 1.5;
+  line-height: 1.55;
+  padding: 1.5rem 1rem;
+}
+
+.empty-title {
+  margin: 0 0 0.65rem;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.empty-text {
+  margin: 0 0 0.75rem;
+  font-size: 0.98rem;
+}
+
+.empty-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.empty-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
 }
 
 .message {

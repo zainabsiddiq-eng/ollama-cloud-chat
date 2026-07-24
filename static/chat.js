@@ -124,8 +124,14 @@ function updateChatList(selected) {
 function renderEmpty() {
   els.chatHistory.innerHTML = `
     <div class="empty-state">
-      Paste your Ollama API key, click Connect, pick a model, then start chatting.
-      Saved chats stay in this browser.
+      <p class="empty-title">Start a conversation</p>
+      <p class="empty-text">
+        Type your message in the box at the bottom, then press
+        <strong>Enter</strong> or click <strong>Send</strong>.
+      </p>
+      <p class="empty-hint">
+        Connect with your API key and choose a model first.
+      </p>
     </div>
   `;
 }
