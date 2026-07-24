@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat with Ollama Cloud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/chat.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>Ollama Cloud</h1>
+          <p class="brand-sub">Cloud chat tester · ollama.com</p>
+        </div>
+      </div>
+      <div class="status" id="connection-status">Enter API key</div>
+    </header>
+
+    <aside class="sidebar">
+      <label class="field">
+        <span>Ollama API Key</span>
+        <input
+          id="api-key"
+          type="password"
+          placeholder="Paste your ollama.com API key"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="button" id="connect-button" class="btn primary connect-btn">Connect</button>
+        <p class="field-hint">
+          Get a key at
+          <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener">ollama.com/settings/keys</a>
+        </p>
+      </label>
+
+      <label class="field">
+        <span>System Prompt</span>
+        <textarea id="system-prompt" rows="5" placeholder="Optional system instructions…"></textarea>
+      </label>
+
+      <label class="field">
+        <span>Model</span>
+        <select id="model-select">
+          <option value="">Connect to load models…</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>History</span>
+        <select id="chat-select">
+          <option value="">Select a chat</option>
+        </select>
+      </label>
+
+      <div class="sidebar-actions">
+        <button type="button" id="reset-button" class="btn ghost">Reset</button>
+        <button type="button" id="save-button" class="btn ghost">Save</button>
+        <button type="button" id="delete-button" class="btn danger">Delete</button>
+      </div>
+    </aside>
+
+    <main class="chat-pane">
+      <div id="chat-history" class="chat-history"></div>
+
+      <form id="chat-form" class="composer">
+        <textarea
+          id="user-input"
+          rows="1"
+          placeholder="Message… (Enter to send, Shift+Enter for newline)"
+          autofocus
+        ></textarea>
+        <button type="submit" id="send-button" class="btn primary">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="name-dialog">
+    <form method="dialog" id="name-form">
+      <h2>Save chat</h2>
+      <input id="chat-name" type="text" placeholder="Chat name" required />
+      <div class="dialog-actions">
+        <button type="submit" class="btn primary" value="save">Save</button>
+        <button type="button" class="btn ghost" id="name-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="error-dialog">
+    <h2>Unable to reach Ollama Cloud</h2>
+    <p id="error-message">Check your API key and try again.</p>
+    <form method="dialog">
+      <button class="btn primary">Close</button>
+    </form>
+  </dialog>
+
+  <script src="/static/chat.js"></script>
+</body>
+</html>
