@@ -1,8 +1,10 @@
 const STORAGE_KEY = "ollama-cloud-chats";
 const API_KEY_STORAGE = "ollama-cloud-api-key";
+const THEME_STORAGE = "ollama-cloud-theme";
 
 const els = {
   status: document.getElementById("connection-status"),
+  themeToggle: document.getElementById("theme-toggle"),
   apiKey: document.getElementById("api-key"),
   connectButton: document.getElementById("connect-button"),
   systemPrompt: document.getElementById("system-prompt"),
@@ -43,6 +45,30 @@ function openDialog(dialog) {
 function closeDialog(dialog) {
   if (typeof dialog.close === "function") dialog.close();
   else dialog.removeAttribute("open");
+}
+
+function getTheme() {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+
+function updateThemeToggleLabel() {
+  const theme = getTheme();
+  els.themeToggle.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+  els.themeToggle.setAttribute(
+    "aria-label",
+    theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+  );
+}
+
+function applyTheme(theme) {
+  const next = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(THEME_STORAGE, next);
+  updateThemeToggleLabel();
+}
+
+function toggleTheme() {
+  applyTheme(getTheme() === "dark" ? "light" : "dark");
 }
 
 function getApiKey() {
@@ -574,6 +600,7 @@ els.saveButton.addEventListener("click", saveChat);
 els.deleteButton.addEventListener("click", deleteChat);
 els.exportButton.addEventListener("click", exportChat);
 els.shareButton.addEventListener("click", shareChat);
+els.themeToggle.addEventListener("click", toggleTheme);
 
 els.nameForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -605,6 +632,7 @@ els.deleteDialog.addEventListener("close", () => {
 });
 
 restoreApiKey();
+updateThemeToggleLabel();
 updateChatList();
 renderEmpty();
 autoGrow();

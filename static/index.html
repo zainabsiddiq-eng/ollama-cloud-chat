@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat with Ollama Cloud</title>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("ollama-cloud-theme");
+        var theme = saved === "light" || saved === "dark"
+          ? saved
+          : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -19,7 +32,12 @@
           <p class="brand-sub">Cloud chat tester · ollama.com</p>
         </div>
       </div>
-      <div class="status" id="connection-status">Enter API key</div>
+      <div class="topbar-actions">
+        <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme">
+          Light mode
+        </button>
+        <div class="status" id="connection-status">Enter API key</div>
+      </div>
     </header>
 
     <aside class="sidebar">
