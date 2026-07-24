@@ -239,6 +239,10 @@ input:focus {
   gap: 0.5rem;
 }
 
+.sidebar-actions-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
 .btn {
   border: 1px solid var(--line);
   background: var(--bg-soft);

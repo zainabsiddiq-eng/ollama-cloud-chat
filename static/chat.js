@@ -11,6 +11,8 @@ const els = {
   resetButton: document.getElementById("reset-button"),
   saveButton: document.getElementById("save-button"),
   deleteButton: document.getElementById("delete-button"),
+  exportButton: document.getElementById("export-button"),
+  shareButton: document.getElementById("share-button"),
   chatHistory: document.getElementById("chat-history"),
   chatForm: document.getElementById("chat-form"),
   userInput: document.getElementById("user-input"),
@@ -276,6 +278,114 @@ function commitSave(name) {
   setStatus(`Saved: ${name}`, "ok");
 }
 
+function getExportPayload() {
+  return {
+    name: currentChatName || "untitled-chat",
+    model: els.modelSelect.value || "",
+    system: els.systemPrompt.value || "",
+    messages: cloneMessages(messages),
+    exportedAt: new Date().toISOString(),
+  };
+}
+
+function chatToMarkdown(payload) {
+  const lines = [
+    `# ${payload.name}`,
+    "",
+    `- Model: ${payload.model || "n/a"}`,
+    `- Exported: ${payload.exportedAt}`,
+    "",
+  ];
+
+  if (payload.system) {
+    lines.push("## System Prompt", "", payload.system, "");
+  }
+
+  lines.push("## Conversation", "");
+  for (const message of payload.messages) {
+    const role = message.role === "user" ? "User" : message.role === "assistant" ? "Assistant" : "System";
+    lines.push(`### ${role}`, "", message.content || "", "");
+  }
+
+  return lines.join("\n");
+}
+
+function downloadTextFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function safeFilename(name) {
+  return String(name || "chat")
+    .trim()
+    .replace(/[^\w\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60) || "chat";
+}
+
+function exportChat() {
+  if (!messages.length) {
+    showError("Chat something first, then export.");
+    return;
+  }
+
+  const payload = getExportPayload();
+  const base = safeFilename(payload.name);
+  downloadTextFile(
+    `${base}.md`,
+    chatToMarkdown(payload),
+    "text/markdown;charset=utf-8",
+  );
+  downloadTextFile(
+    `${base}.json`,
+    JSON.stringify(payload, null, 2),
+    "application/json;charset=utf-8",
+  );
+  setStatus(`Exported: ${payload.name}`, "ok");
+}
+
+async function shareChat() {
+  if (!messages.length) {
+    showError("Chat something first, then share.");
+    return;
+  }
+
+  const payload = getExportPayload();
+  const text = chatToMarkdown(payload);
+  const title = `Ollama Cloud · ${payload.name}`;
+
+  try {
+    if (navigator.share) {
+      const shareData = { title, text };
+      if (navigator.canShare && !navigator.canShare(shareData)) {
+        throw new Error("Share not supported for this content");
+      }
+      await navigator.share(shareData);
+      setStatus("Shared", "ok");
+      return;
+    }
+
+    await navigator.clipboard.writeText(text);
+    setStatus("Copied chat to clipboard", "ok");
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus("Copied chat to clipboard", "ok");
+    } catch {
+      showError("Could not share or copy this chat.");
+    }
+  }
+}
+
 function deleteChat() {
   if (busy) return;
 
@@ -456,6 +566,8 @@ els.apiKey.addEventListener("change", saveApiKey);
 els.resetButton.addEventListener("click", resetChat);
 els.saveButton.addEventListener("click", saveChat);
 els.deleteButton.addEventListener("click", deleteChat);
+els.exportButton.addEventListener("click", exportChat);
+els.shareButton.addEventListener("click", shareChat);
 
 els.nameForm.addEventListener("submit", (event) => {
   event.preventDefault();
