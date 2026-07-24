@@ -7,7 +7,7 @@ const els = {
   connectButton: document.getElementById("connect-button"),
   systemPrompt: document.getElementById("system-prompt"),
   modelSelect: document.getElementById("model-select"),
-  chatSelect: document.getElementById("chat-select"),
+  chatList: document.getElementById("chat-list"),
   resetButton: document.getElementById("reset-button"),
   saveButton: document.getElementById("save-button"),
   deleteButton: document.getElementById("delete-button"),
@@ -19,6 +19,10 @@ const els = {
   nameForm: document.getElementById("name-form"),
   chatName: document.getElementById("chat-name"),
   nameCancel: document.getElementById("name-cancel"),
+  deleteDialog: document.getElementById("delete-dialog"),
+  deleteMessage: document.getElementById("delete-message"),
+  deleteCancel: document.getElementById("delete-cancel"),
+  deleteConfirm: document.getElementById("delete-confirm"),
   errorDialog: document.getElementById("error-dialog"),
   errorMessage: document.getElementById("error-message"),
 };
@@ -26,6 +30,18 @@ const els = {
 let messages = [];
 let busy = false;
 let abortController = null;
+let currentChatName = "";
+let pendingDeleteName = "";
+
+function openDialog(dialog) {
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function closeDialog(dialog) {
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+}
 
 function getApiKey() {
   return (els.apiKey.value || "").trim();
@@ -55,7 +71,11 @@ function setStatus(text, kind = "") {
 
 function showError(message) {
   els.errorMessage.textContent = message;
-  els.errorDialog.showModal();
+  openDialog(els.errorDialog);
+}
+
+function cloneMessages(list) {
+  return JSON.parse(JSON.stringify(list || []));
 }
 
 function loadChats() {
@@ -70,16 +90,32 @@ function persistChats(chats) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
 }
 
-function updateChatList(selected = "") {
+function updateChatList(selected) {
   const chats = loadChats();
   const names = Object.keys(chats).sort((a, b) => a.localeCompare(b));
-  els.chatSelect.innerHTML = `<option value="">Select a chat</option>`;
+
+  if (typeof selected === "string") {
+    currentChatName = selected;
+  }
+
+  if (currentChatName && !names.includes(currentChatName)) {
+    currentChatName = "";
+  }
+
+  if (!names.length) {
+    els.chatList.innerHTML = `<div class="chat-list-empty">No saved chats yet</div>`;
+    return;
+  }
+
+  els.chatList.innerHTML = "";
   for (const name of names) {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    if (name === selected) option.selected = true;
-    els.chatSelect.appendChild(option);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `chat-list-item${name === currentChatName ? " active" : ""}`;
+    button.textContent = name;
+    button.dataset.chatName = name;
+    button.addEventListener("click", () => loadChatByName(name));
+    els.chatList.appendChild(button);
   }
 }
 
@@ -205,15 +241,25 @@ async function populateModels({ silent = false } = {}) {
 function resetChat() {
   if (busy) return;
   messages = [];
-  els.chatSelect.value = "";
+  currentChatName = "";
+  updateChatList();
   renderEmpty();
 }
 
 function saveChat() {
-  if (!messages.length) return;
-  els.chatName.value = els.chatSelect.value || "";
-  els.nameDialog.showModal();
-  els.chatName.focus();
+  if (busy) return;
+
+  if (!messages.length) {
+    showError("Send at least one message before saving a chat.");
+    return;
+  }
+
+  els.chatName.value = currentChatName || "";
+  openDialog(els.nameDialog);
+  requestAnimationFrame(() => {
+    els.chatName.focus();
+    els.chatName.select();
+  });
 }
 
 function commitSave(name) {
@@ -221,37 +267,86 @@ function commitSave(name) {
   chats[name] = {
     system: els.systemPrompt.value,
     model: els.modelSelect.value,
-    messages,
+    messages: cloneMessages(messages),
     updatedAt: Date.now(),
   };
   persistChats(chats);
+  currentChatName = name;
   updateChatList(name);
+  setStatus(`Saved: ${name}`, "ok");
 }
 
 function deleteChat() {
-  const name = els.chatSelect.value;
-  if (!name) return;
-  const chats = loadChats();
-  delete chats[name];
-  persistChats(chats);
-  updateChatList();
-  resetChat();
+  if (busy) return;
+
+  const name = currentChatName;
+  if (!name) {
+    showError("Click a saved chat in History first, then click Delete.");
+    return;
+  }
+
+  pendingDeleteName = name;
+  els.deleteMessage.textContent = `Delete saved chat "${name}"? This cannot be undone.`;
+  openDialog(els.deleteDialog);
 }
 
-function loadSelectedChat() {
-  const name = els.chatSelect.value;
+function confirmDeleteChat() {
+  const name = pendingDeleteName;
+  pendingDeleteName = "";
+  closeDialog(els.deleteDialog);
+
   if (!name) return;
+
+  const chats = loadChats();
+  if (!(name in chats)) {
+    showError(`No saved chat named "${name}".`);
+    updateChatList();
+    return;
+  }
+
+  delete chats[name];
+  persistChats(chats);
+  currentChatName = "";
+  updateChatList();
+  messages = [];
+  renderEmpty();
+  setStatus(`Deleted: ${name}`, "ok");
+}
+
+function loadChatByName(name) {
+  if (busy) {
+    showError("Wait for the current reply to finish before loading a chat.");
+    return;
+  }
+
+  if (!name) return;
+
   const chats = loadChats();
   const chat = chats[name];
-  if (!chat) return;
-
-  els.systemPrompt.value = chat.system || "";
-  if (chat.model) {
-    const option = [...els.modelSelect.options].find((o) => o.value === chat.model);
-    if (option) els.modelSelect.value = chat.model;
+  if (!chat) {
+    showError(`Saved chat "${name}" was not found.`);
+    updateChatList();
+    return;
   }
-  messages = Array.isArray(chat.messages) ? chat.messages : [];
+
+  currentChatName = name;
+  updateChatList(name);
+  els.systemPrompt.value = chat.system || "";
+
+  if (chat.model) {
+    let option = [...els.modelSelect.options].find((o) => o.value === chat.model);
+    if (!option) {
+      option = document.createElement("option");
+      option.value = chat.model;
+      option.textContent = chat.model;
+      els.modelSelect.appendChild(option);
+    }
+    els.modelSelect.value = chat.model;
+  }
+
+  messages = cloneMessages(chat.messages);
   renderMessages();
+  setStatus(`Loaded: ${name}`, "ok");
 }
 
 async function sendMessage(event) {
@@ -361,17 +456,35 @@ els.apiKey.addEventListener("change", saveApiKey);
 els.resetButton.addEventListener("click", resetChat);
 els.saveButton.addEventListener("click", saveChat);
 els.deleteButton.addEventListener("click", deleteChat);
-els.chatSelect.addEventListener("change", loadSelectedChat);
 
 els.nameForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = els.chatName.value.trim();
-  if (!name) return;
+  if (!name) {
+    showError("Enter a name for this chat.");
+    return;
+  }
   commitSave(name);
-  els.nameDialog.close();
+  closeDialog(els.nameDialog);
 });
 
-els.nameCancel.addEventListener("click", () => els.nameDialog.close());
+els.nameCancel.addEventListener("click", (event) => {
+  event.preventDefault();
+  closeDialog(els.nameDialog);
+});
+
+els.nameDialog.addEventListener("close", () => {
+  els.chatName.value = "";
+});
+
+els.deleteConfirm.addEventListener("click", confirmDeleteChat);
+els.deleteCancel.addEventListener("click", () => {
+  pendingDeleteName = "";
+  closeDialog(els.deleteDialog);
+});
+els.deleteDialog.addEventListener("close", () => {
+  pendingDeleteName = "";
+});
 
 restoreApiKey();
 updateChatList();

@@ -51,12 +51,12 @@
         </select>
       </label>
 
-      <label class="field">
+      <div class="field">
         <span>History</span>
-        <select id="chat-select">
-          <option value="">Select a chat</option>
-        </select>
-      </label>
+        <div id="chat-list" class="chat-list" aria-live="polite">
+          <div class="chat-list-empty">No saved chats yet</div>
+        </div>
+      </div>
 
       <div class="sidebar-actions">
         <button type="button" id="reset-button" class="btn ghost">Reset</button>
@@ -81,14 +81,23 @@
   </div>
 
   <dialog id="name-dialog">
-    <form method="dialog" id="name-form">
+    <form id="name-form">
       <h2>Save chat</h2>
-      <input id="chat-name" type="text" placeholder="Chat name" required />
+      <input id="chat-name" type="text" placeholder="Chat name" required autocomplete="off" />
       <div class="dialog-actions">
-        <button type="submit" class="btn primary" value="save">Save</button>
         <button type="button" class="btn ghost" id="name-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="delete-dialog">
+    <h2>Delete chat</h2>
+    <p id="delete-message">Delete this saved chat?</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="delete-cancel">Cancel</button>
+      <button type="button" class="btn danger" id="delete-confirm">Delete</button>
+    </div>
   </dialog>
 
   <dialog id="error-dialog">
